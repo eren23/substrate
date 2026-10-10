@@ -60,7 +60,7 @@ func TestActorStateChangeRecords(t *testing.T) {
 			name:      "pause marks the actor pausing",
 			seedState: ateapipb.ActorState_ACTOR_STATE_RUNNING,
 			transition: func(t *testing.T, w *ActorWorkflow, ref resources.ActorRef, actor *ateapipb.Actor, tmpl *ateapipb.ActorTemplate) {
-				if _, err := w.ensureMarkedPausing(context.Background(), ref, actor, tmpl); err != nil {
+				if _, err := w.ensureMarkedPausing(context.Background(), ref, actor, tmpl, ateattr.OperationPause); err != nil {
 					t.Fatalf("ensureMarkedPausing: %v", err)
 				}
 			},

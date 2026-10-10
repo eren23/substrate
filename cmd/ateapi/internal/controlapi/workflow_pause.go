@@ -67,29 +67,40 @@ func (w *ActorWorkflow) PauseActor(ctx context.Context, actorRef resources.Actor
 		// released the worker, so the record names none (#957).
 		return actor, nil
 	}
-	var marked *ateapipb.Actor
-	if marked, err = w.ensureMarkedPausing(leaseCtx, actorRef, actor, actorTemplate); err != nil {
+	// actor keeps the loaded record on failure, for the metric labels.
+	var paused *ateapipb.Actor
+	if paused, wireFidelity, finalAttrs, err = w.pauseLeased(leaseCtx, actorRef, actor, actorTemplate, ateattr.OperationPause); err != nil {
 		return nil, err
 	}
+	return paused, nil
+}
+
+// pauseLeased runs the pause steps on a RUNNING or PAUSING actor whose lease
+// the caller holds. SuspendActor uses it too, so that a running actor's
+// snapshot is on the node's disk before its upload starts.
+func (w *ActorWorkflow) pauseLeased(ctx context.Context, actorRef resources.ActorRef, actor *ateapipb.Actor, actorTemplate *ateapipb.ActorTemplate, op string) (_ *ateapipb.Actor, wireFidelity string, finalAttrs []attribute.KeyValue, err error) {
+	var marked *ateapipb.Actor
+	if marked, err = w.ensureMarkedPausing(ctx, actorRef, actor, actorTemplate, op); err != nil {
+		return nil, "", nil, err
+	}
 	actor = marked
-	if wireFidelity, err = w.ensureAteletPaused(leaseCtx, actorRef, actor, actorTemplate); err != nil {
-		return nil, err
+	if wireFidelity, err = w.ensureAteletPaused(ctx, actorRef, actor, actorTemplate, op); err != nil {
+		return nil, wireFidelity, nil, err
 	}
 	// TODO: There is no difference between suspend and pause for now, but we
 	// could optimize pause by not detaching. We would need to make sure Resume
 	// is idempotent.
-	if err = w.ensureVolumesDetached(leaseCtx, actor, actorTemplate, "DetachVolumesForPause", ateattr.OperationPause); err != nil {
-		return nil, err
+	if err = w.ensureVolumesDetached(ctx, actor, actorTemplate, "DetachVolumesForPause", op); err != nil {
+		return nil, wireFidelity, nil, err
 	}
 	// FinalizePaused clears the WorkerAssignment the labels read, so snapshot
 	// them here, as crash.go does for the crash counter.
 	finalAttrs = lifecycleOpAttrs(actor, actorTemplate, "", wireFidelity)
-	var finalized *ateapipb.Actor
-	if finalized, err = w.ensurePausedFinalized(leaseCtx, actorRef); err != nil {
-		return nil, err
+	finalized, err := w.ensurePausedFinalized(ctx, actorRef, op)
+	if err != nil {
+		return nil, wireFidelity, finalAttrs, err
 	}
-	actor = finalized
-	return actor, nil
+	return finalized, wireFidelity, finalAttrs, nil
 }
 
 // loadActorForPause fetches the current actor record and its template.
@@ -112,7 +123,7 @@ func (w *ActorWorkflow) loadActorForPause(ctx context.Context, actorRef resource
 // local snapshot name. Skips when a previous attempt already marked the
 // actor; the persisted name then stays authoritative for the rest of the
 // workflow.
-func (w *ActorWorkflow) ensureMarkedPausing(ctx context.Context, actorRef resources.ActorRef, actor *ateapipb.Actor, actorTemplate *ateapipb.ActorTemplate) (_ *ateapipb.Actor, err error) {
+func (w *ActorWorkflow) ensureMarkedPausing(ctx context.Context, actorRef resources.ActorRef, actor *ateapipb.Actor, actorTemplate *ateapipb.ActorTemplate, op string) (_ *ateapipb.Actor, err error) {
 	ctx, done := stepSpan(ctx, "MarkPausing")
 	defer func() { err = done(err) }()
 
@@ -152,7 +163,7 @@ func (w *ActorWorkflow) ensureMarkedPausing(ctx context.Context, actorRef resour
 		}
 		return nil, err
 	}
-	logActorStateChanged(ctx, storedActor, ateattr.OperationPause)
+	logActorStateChanged(ctx, storedActor, op)
 	return storedActor, nil
 }
 
@@ -162,14 +173,14 @@ func (w *ActorWorkflow) ensureMarkedPausing(ctx context.Context, actorRef resour
 // the once-minted snapshot name, so a re-entered workflow re-sends the same
 // semantic request; once atelet's Checkpoint is idempotent on those keys this
 // step becomes fully reentrant with no changes here.
-func (w *ActorWorkflow) ensureAteletPaused(ctx context.Context, actorRef resources.ActorRef, actor *ateapipb.Actor, actorTemplate *ateapipb.ActorTemplate) (wireFidelity string, err error) {
+func (w *ActorWorkflow) ensureAteletPaused(ctx context.Context, actorRef resources.ActorRef, actor *ateapipb.Actor, actorTemplate *ateapipb.ActorTemplate, op string) (wireFidelity string, err error) {
 	ctx, done := stepSpan(ctx, "CallAteletPause")
 	defer func() { err = done(err) }()
 
 	assignment := actor.GetStatus().GetWorkerAssignment()
 	if assignment == nil {
 		// Missing active worker pod reference in PAUSING state indicates corrupted store state.
-		if err := crashActor(ctx, w.store, actorRef, ateattr.OperationPause, crashMessageWorkerAssignmentMissing); err != nil {
+		if err := crashActor(ctx, w.store, actorRef, op, crashMessageWorkerAssignmentMissing); err != nil {
 			slog.ErrorContext(ctx, "Failed to crash actor", slog.String("err", err.Error()))
 		}
 		return "", apierror.FailedPrecondition("CallAteletPause prerequisite not met for Actor: %s. No worker assignment", actorRef)
@@ -209,7 +220,7 @@ func (w *ActorWorkflow) ensureAteletPaused(ctx context.Context, actorRef resourc
 	wireFidelity = ateattr.SnapshotFidelityValue(req.Fidelity)
 
 	if _, err = client.Checkpoint(ctx, req); err != nil {
-		return wireFidelity, handleAteletError(ctx, w.store, actorRef, ateattr.OperationPause, "Checkpoint", false, err)
+		return wireFidelity, handleAteletError(ctx, w.store, actorRef, op, "Checkpoint", false, err)
 	}
 	return wireFidelity, nil
 }
@@ -221,7 +232,7 @@ func (w *ActorWorkflow) ensureAteletPaused(ctx context.Context, actorRef resourc
 // never be resumed. It re-reads the actor first so an out-of-band transition
 // (e.g. the syncer crashing the actor after its worker died) is not
 // overwritten: with no assignment left there is nothing to finalize.
-func (w *ActorWorkflow) ensurePausedFinalized(ctx context.Context, actorRef resources.ActorRef) (_ *ateapipb.Actor, err error) {
+func (w *ActorWorkflow) ensurePausedFinalized(ctx context.Context, actorRef resources.ActorRef, op string) (_ *ateapipb.Actor, err error) {
 	ctx, done := stepSpan(ctx, "FinalizePaused")
 	defer func() { err = done(err) }()
 
@@ -266,7 +277,7 @@ func (w *ActorWorkflow) ensurePausedFinalized(ctx context.Context, actorRef reso
 			slog.LogAttrs(ctx, slog.LevelError, "Node name not found during finalize pause, crashing actor",
 				ateattr.ActorRefLogAttrs(actorRef)...)
 			newState = ateapipb.ActorState_ACTOR_STATE_CRASHED
-			crashStatus = newActorCrash(ateattr.OperationPause, crashMessageLocalSnapshotNodeUnknown)
+			crashStatus = newActorCrash(op, crashMessageLocalSnapshotNodeUnknown)
 		}
 		sandboxClass := ""
 		if worker != nil {
@@ -274,7 +285,7 @@ func (w *ActorWorkflow) ensurePausedFinalized(ctx context.Context, actorRef reso
 		}
 		// Snapshot crash attributes before pod and pool pointers are cleared below.
 		latestActor.Status.State = newState
-		crashAttrs := ateattr.ActorMetricAttributes(latestActor, sandboxClass, ateattr.OperationPause)
+		crashAttrs := ateattr.ActorMetricAttributes(latestActor, sandboxClass, op)
 
 		storedActor, err := w.store.UpdateActor(ctx, actorRef, store.PreconditionFrom(latestActor), func(toUpdate *ateapipb.Actor) error {
 			toUpdate.Status.State = newState
@@ -296,11 +307,11 @@ func (w *ActorWorkflow) ensurePausedFinalized(ctx context.Context, actorRef reso
 			return nil
 		})
 		if err == nil && storedActor.GetStatus().GetState() == ateapipb.ActorState_ACTOR_STATE_CRASHED && !wasAlreadyCrashed {
-			logActorCrashed(ctx, latestActor, ateattr.OperationPause)
+			logActorCrashed(ctx, latestActor, op)
 			recordActorCrash(ctx, crashAttrs)
 		}
 		if err == nil && storedActor.GetStatus().GetState() == ateapipb.ActorState_ACTOR_STATE_PAUSED {
-			logActorStateChanged(ctx, storedActor, ateattr.OperationPause)
+			logActorStateChanged(ctx, storedActor, op)
 		}
 		if err != nil {
 			if errors.Is(err, store.ErrVersionConflict) {

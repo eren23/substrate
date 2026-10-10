@@ -2487,15 +2487,15 @@ func TestSuspendActor_VolumeDetachFailure_RetrySuccess(t *testing.T) {
 		t.Errorf("expected error containing simulated detach failure, got: %v", err)
 	}
 
-	// 4. Verify actor state after failed detach: left in ACTOR_STATE_SUSPENDING, worker assignment preserved.
+	// 4. Verify actor state after failed detach: left in ACTOR_STATE_PAUSING (the pause step of the suspend), worker assignment preserved.
 	getResp, err := tc.client.GetActor(context.Background(), &ateapipb.GetActorRequest{
 		Actor: &ateapipb.ObjectRef{Atespace: testAtespace, Name: "suspend-detach-retry-actor"},
 	})
 	if err != nil {
 		t.Fatalf("GetActor after failed detach: %v", err)
 	}
-	if getResp.GetStatus().GetState() != ateapipb.ActorState_ACTOR_STATE_SUSPENDING {
-		t.Errorf("actor state = %v, want ACTOR_STATE_SUSPENDING", getResp.GetStatus().GetState())
+	if getResp.GetStatus().GetState() != ateapipb.ActorState_ACTOR_STATE_PAUSING {
+		t.Errorf("actor state = %v, want ACTOR_STATE_PAUSING (a suspend pauses the actor first)", getResp.GetStatus().GetState())
 	}
 	if getResp.GetStatus().GetWorkerAssignment() == nil || getResp.GetStatus().GetWorkerAssignment().GetWorkerPod() != "worker-1" {
 		t.Errorf("worker assignment = %v, want worker-1", getResp.GetStatus().GetWorkerAssignment())
@@ -2599,8 +2599,8 @@ func TestSuspendActor_VolumeDetachFailure_DeleteActorAnyState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetActor failed: %v", err)
 	}
-	if getResp.GetStatus().GetState() != ateapipb.ActorState_ACTOR_STATE_SUSPENDING {
-		t.Fatalf("actor state = %v, want ACTOR_STATE_SUSPENDING", getResp.GetStatus().GetState())
+	if getResp.GetStatus().GetState() != ateapipb.ActorState_ACTOR_STATE_PAUSING {
+		t.Fatalf("actor state = %v, want ACTOR_STATE_PAUSING (a suspend pauses the actor first)", getResp.GetStatus().GetState())
 	}
 
 	// 4. DeleteActor without AnyState fails with FailedPrecondition.
@@ -4840,6 +4840,155 @@ func TestSuspendActor_FromPaused_UploadFailureKeepsPaused(t *testing.T) {
 	tc.fakeAtelet.Lock.Unlock()
 	if uploaded != pausedLocal.GetSnapshotName() {
 		t.Errorf("uploaded local snapshot = %q, want %q", uploaded, pausedLocal.GetSnapshotName())
+	}
+}
+
+// TestSuspendActor_FromRunning_UploadFailureKeepsPaused: a suspend pauses a
+// running actor first, so a failed upload leaves it PAUSED with its local
+// snapshot, and a later suspend uploads that snapshot (#362).
+func TestSuspendActor_FromRunning_UploadFailureKeepsPaused(t *testing.T) {
+	ns := namespaceForTest("ns-suspend-running-retry")
+	tc := setupTest(t, ns)
+	defer tc.cleanup()
+
+	createTemplate(t, tc, ns)
+	createWorkerPod(t, tc, ns, "worker-1", "node1", "pool1")
+
+	name := "id1"
+	ref := &ateapipb.ObjectRef{Atespace: testAtespace, Name: name}
+	if _, err := tc.client.CreateActor(context.Background(), &ateapipb.CreateActorRequest{Actor: &ateapipb.Actor{
+		Metadata:      &ateapipb.ResourceMetadata{Atespace: testAtespace, Name: name},
+		ActorTemplate: &ateapipb.ObjectRef{Atespace: testAtespace, Name: "tmpl1"},
+	}}); err != nil {
+		t.Fatalf("CreateActor failed: %v", err)
+	}
+	if _, err := tc.client.ResumeActor(context.Background(), &ateapipb.ResumeActorRequest{Actor: ref}); err != nil {
+		t.Fatalf("ResumeActor failed: %v", err)
+	}
+
+	tc.fakeAtelet.Reset()
+	tc.fakeAtelet.SetObjectStore(tc.objectStore)
+	tc.fakeAtelet.FailUpload = status.Error(codes.Internal, "injected storage outage")
+	_, err := tc.client.SuspendActor(context.Background(), &ateapipb.SuspendActorRequest{Actor: ref})
+	if got := status.Code(err); got != codes.Internal {
+		t.Fatalf("SuspendActor = %v, want code %v", err, codes.Internal)
+	}
+	tc.fakeAtelet.Lock.Lock()
+	checkpointType := tc.fakeAtelet.CheckpointRequest.GetType()
+	tc.fakeAtelet.Lock.Unlock()
+	if checkpointType != ateletpb.CheckpointType_CHECKPOINT_TYPE_LOCAL {
+		t.Errorf("checkpoint type = %v, want LOCAL", checkpointType)
+	}
+
+	got, err := tc.client.GetActor(context.Background(), &ateapipb.GetActorRequest{Actor: ref})
+	if err != nil {
+		t.Fatalf("GetActor failed: %v", err)
+	}
+	if got.GetStatus().GetState() != ateapipb.ActorState_ACTOR_STATE_PAUSED {
+		t.Fatalf("state after failed upload = %v, want PAUSED", got.GetStatus().GetState())
+	}
+	_, local := localSnapshot(got.GetStatus())
+	if local == nil {
+		t.Fatal("no local snapshot after the failed upload")
+	}
+
+	tc.fakeAtelet.Lock.Lock()
+	tc.fakeAtelet.FailUpload = nil
+	tc.fakeAtelet.Lock.Unlock()
+	suspended, err := tc.client.SuspendActor(context.Background(), &ateapipb.SuspendActorRequest{Actor: ref})
+	if err != nil {
+		t.Fatalf("SuspendActor after the outage failed: %v", err)
+	}
+	if got := suspended.GetActor().GetStatus().GetState(); got != ateapipb.ActorState_ACTOR_STATE_SUSPENDED {
+		t.Errorf("state = %v, want SUSPENDED", got)
+	}
+	tc.fakeAtelet.Lock.Lock()
+	uploaded := tc.fakeAtelet.UploadRequest.GetLocalSnapshotName()
+	tc.fakeAtelet.Lock.Unlock()
+	if uploaded != local.GetSnapshotName() {
+		t.Errorf("uploaded local snapshot = %q, want %q", uploaded, local.GetSnapshotName())
+	}
+}
+
+// TestSuspendActor_FromRunning_DirectWhenNodeUnknown: a running actor whose
+// record names no node (resumed before assigned_node existed) cannot finish
+// a pause, so its suspend keeps the direct checkpoint, and a template whose
+// storage location gives no upload destination fails the suspend before the
+// workload stops.
+func TestSuspendActor_FromRunning_DirectWhenNodeUnknown(t *testing.T) {
+	ns := namespaceForTest("ns-suspend-running-legacy")
+	tc := setupTest(t, ns)
+	defer tc.cleanup()
+
+	tmpl := createTemplate(t, tc, ns)
+	createWorkerPod(t, tc, ns, "worker-1", "node1", "pool1")
+	ctx := context.Background()
+	resume := func(name string) *ateapipb.Actor {
+		t.Helper()
+		if _, err := tc.client.CreateActor(ctx, &ateapipb.CreateActorRequest{Actor: &ateapipb.Actor{
+			Metadata:      &ateapipb.ResourceMetadata{Atespace: testAtespace, Name: name},
+			ActorTemplate: &ateapipb.ObjectRef{Atespace: testAtespace, Name: "tmpl1"},
+		}}); err != nil {
+			t.Fatalf("CreateActor failed: %v", err)
+		}
+		resp, err := tc.client.ResumeActor(ctx, &ateapipb.ResumeActorRequest{Actor: &ateapipb.ObjectRef{Atespace: testAtespace, Name: name}})
+		if err != nil {
+			t.Fatalf("ResumeActor failed: %v", err)
+		}
+		return resp.GetActor()
+	}
+
+	legacy := resume("legacy")
+	stored, err := tc.persistence.GetActor(ctx, resources.ActorRefFromActor(legacy))
+	if err != nil {
+		t.Fatalf("GetActor: %v", err)
+	}
+	if _, err := tc.persistence.UpdateActor(ctx, resources.ActorRefFromActor(stored), store.PreconditionFrom(stored), func(toUpdate *ateapipb.Actor) error {
+		toUpdate.Status.AssignedNode = ""
+		return nil
+	}); err != nil {
+		t.Fatalf("UpdateActor: %v", err)
+	}
+	tc.fakeAtelet.Reset()
+	tc.fakeAtelet.SetObjectStore(tc.objectStore)
+	suspended, err := tc.client.SuspendActor(ctx, &ateapipb.SuspendActorRequest{Actor: &ateapipb.ObjectRef{Atespace: testAtespace, Name: "legacy"}})
+	if err != nil {
+		t.Fatalf("SuspendActor failed: %v", err)
+	}
+	if got := suspended.GetActor().GetStatus().GetState(); got != ateapipb.ActorState_ACTOR_STATE_SUSPENDED {
+		t.Errorf("state = %v, want SUSPENDED", got)
+	}
+	tc.fakeAtelet.Lock.Lock()
+	checkpointType := tc.fakeAtelet.CheckpointRequest.GetType()
+	tc.fakeAtelet.Lock.Unlock()
+	if checkpointType != ateletpb.CheckpointType_CHECKPOINT_TYPE_EXTERNAL {
+		t.Errorf("checkpoint type = %v, want EXTERNAL", checkpointType)
+	}
+
+	resume("bad-location")
+	if _, err := tc.persistence.UpdateActorTemplate(ctx, resources.ActorTemplateRefFromActorTemplate(tmpl), store.PreconditionFrom(tmpl),
+		func(dbTemplate *ateapipb.ActorTemplate) error {
+			dbTemplate.SnapshotConfig.StorageLocation = "not-a-url"
+			return nil
+		}); err != nil {
+		t.Fatalf("UpdateActorTemplate: %v", err)
+	}
+	tc.fakeAtelet.Reset()
+	if _, err := tc.client.SuspendActor(ctx, &ateapipb.SuspendActorRequest{Actor: &ateapipb.ObjectRef{Atespace: testAtespace, Name: "bad-location"}}); err == nil {
+		t.Fatal("SuspendActor succeeded with no usable storage location")
+	}
+	got, err := tc.client.GetActor(ctx, &ateapipb.GetActorRequest{Actor: &ateapipb.ObjectRef{Atespace: testAtespace, Name: "bad-location"}})
+	if err != nil {
+		t.Fatalf("GetActor failed: %v", err)
+	}
+	if got.GetStatus().GetState() != ateapipb.ActorState_ACTOR_STATE_RUNNING {
+		t.Errorf("state = %v, want RUNNING: the workload must not stop when the upload cannot start", got.GetStatus().GetState())
+	}
+	tc.fakeAtelet.Lock.Lock()
+	checkpointed := tc.fakeAtelet.CheckpointRequest != nil
+	tc.fakeAtelet.Lock.Unlock()
+	if checkpointed {
+		t.Error("the workload was checkpointed before the storage location was checked")
 	}
 }
 

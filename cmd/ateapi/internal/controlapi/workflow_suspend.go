@@ -71,6 +71,26 @@ func (w *ActorWorkflow) SuspendActor(ctx context.Context, actorRef resources.Act
 		// attempt released the worker, so the record names none (#957).
 		return actor, nil
 	}
+	// A running actor is paused first, so its snapshot is on the node's disk
+	// before the upload starts, and a failed upload returns it to PAUSED
+	// instead of losing it (#362). PAUSING is a pause that a previous attempt
+	// did not finish. Golden actors cannot be paused, and an actor with no
+	// recorded node (resumed before assigned_node existed) cannot finish a
+	// pause: both keep the direct checkpoint to object storage.
+	st := actor.GetStatus().GetState()
+	if actorRef.Atespace != resources.GoldenActorAtespace && (st == ateapipb.ActorState_ACTOR_STATE_PAUSING ||
+		(st == ateapipb.ActorState_ACTOR_STATE_RUNNING && actor.GetStatus().GetAssignedNode() != "")) {
+		// Check the upload destination before the workload stops.
+		if _, err = newInProgressSnapshotURI(actorTemplate, actor); err != nil {
+			return nil, err
+		}
+		paused, pauseFidelity, pauseAttrs, perr := w.pauseLeased(leaseCtx, actorRef, actor, actorTemplate, ateattr.OperationSuspend)
+		if perr != nil {
+			wireFidelity = pauseFidelity
+			return nil, perr
+		}
+		actor, finalAttrs = paused, pauseAttrs
+	}
 	// Decided before marking: once SUSPENDING is committed, the loaded status
 	// alone can no longer tell the two origins apart.
 	fromPaused := isPausedOriginSuspend(actor)
@@ -92,7 +112,9 @@ func (w *ActorWorkflow) SuspendActor(ctx context.Context, actorRef resources.Act
 	}
 	// FinalizeSuspended clears the WorkerAssignment the labels read, so snapshot
 	// them here, as crash.go does for the crash counter.
-	finalAttrs = lifecycleOpAttrs(actor, actorTemplate, "", wireFidelity)
+	if finalAttrs == nil { // the pause took them while the actor still had its worker
+		finalAttrs = lifecycleOpAttrs(actor, actorTemplate, "", wireFidelity)
+	}
 	var finalized *ateapipb.Actor
 	if finalized, err = w.ensureSuspendedFinalized(leaseCtx, actorRef); err != nil {
 		return nil, err

@@ -60,7 +60,7 @@ func TestEnsurePausedFinalized_WorkerGone(t *testing.T) {
 	// Intentionally NOT creating the worker in store, simulates worker already gone.
 
 	w := &ActorWorkflow{store: st}
-	finalized, err := w.ensurePausedFinalized(ctx, actorRef)
+	finalized, err := w.ensurePausedFinalized(ctx, actorRef, ateattr.OperationPause)
 	if err != nil {
 		t.Fatalf("ensurePausedFinalized: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestEnsurePausedFinalized_AlreadyCrashed(t *testing.T) {
 	storetest.MustCreateActor(t, ctx, st, actor)
 
 	w := &ActorWorkflow{store: st}
-	finalized, err := w.ensurePausedFinalized(ctx, actorRef)
+	finalized, err := w.ensurePausedFinalized(ctx, actorRef, ateattr.OperationPause)
 	if err != nil {
 		t.Fatalf("ensurePausedFinalized: %v", err)
 	}
@@ -208,10 +208,10 @@ func TestEnsurePausedFinalized_RecordsFidelity(t *testing.T) {
 			tmpl := &ateapipb.ActorTemplate{
 				SnapshotConfig: &ateapipb.SnapshotConfig{PreferredFidelity: tc.fidelity},
 			}
-			if _, err := w.ensureMarkedPausing(ctx, actorRef, created, tmpl); err != nil {
+			if _, err := w.ensureMarkedPausing(ctx, actorRef, created, tmpl, ateattr.OperationPause); err != nil {
 				t.Fatalf("ensureMarkedPausing: %v", err)
 			}
-			got, err := w.ensurePausedFinalized(ctx, actorRef)
+			got, err := w.ensurePausedFinalized(ctx, actorRef, ateattr.OperationPause)
 			if err != nil {
 				t.Fatalf("ensurePausedFinalized: %v", err)
 			}
@@ -315,7 +315,7 @@ func TestEnsureMarkedPausing_StateMatrix(t *testing.T) {
 			Status:   &ateapipb.ActorStatus{State: seedState},
 		})
 
-		marked, err := w.ensureMarkedPausing(ctx, actorRef, actor, &ateapipb.ActorTemplate{})
+		marked, err := w.ensureMarkedPausing(ctx, actorRef, actor, &ateapipb.ActorTemplate{}, ateattr.OperationPause)
 		assertPrerequisiteResult(t, seedState, err, allowed[seedState])
 		if err == nil && marked.GetStatus().GetState() != ateapipb.ActorState_ACTOR_STATE_PAUSING {
 			t.Errorf("state %v: ensureMarkedPausing returned actor in %v, want PAUSING", seedState, marked.GetStatus().GetState())
@@ -366,7 +366,7 @@ func TestEnsureAteletPaused_DialFailureLeavesActorRetryable(t *testing.T) {
 			created := storetest.MustCreateActor(t, ctx, persistence, actor)
 
 			w := &ActorWorkflow{store: persistence, dialer: newDanglingDialer()}
-			if _, err := w.ensureAteletPaused(ctx, resources.ActorRef{Atespace: "team-a", Name: "actor-1"}, created, &ateapipb.ActorTemplate{}); err == nil {
+			if _, err := w.ensureAteletPaused(ctx, resources.ActorRef{Atespace: "team-a", Name: "actor-1"}, created, &ateapipb.ActorTemplate{}, ateattr.OperationPause); err == nil {
 				t.Fatal("ensureAteletPaused: want error when atelet is unreachable, got nil")
 			}
 
@@ -427,7 +427,7 @@ func TestEnsureMarkedPausing_GoldenAtespaceRejected(t *testing.T) {
 	_, err := w.ensureMarkedPausing(context.Background(),
 		resources.ActorRef{Atespace: resources.GoldenActorAtespace, Name: "golden-1"},
 		&ateapipb.Actor{Status: &ateapipb.ActorStatus{State: ateapipb.ActorState_ACTOR_STATE_RUNNING}},
-		&ateapipb.ActorTemplate{})
+		&ateapipb.ActorTemplate{}, ateattr.OperationPause)
 	if got := apierror.Code(err); got != codes.FailedPrecondition {
 		t.Fatalf("apierror.Code = %v (err %v), want FailedPrecondition", got, err)
 	}
