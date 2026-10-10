@@ -1446,11 +1446,15 @@ type recordingObjectStorage struct {
 	mu      sync.Mutex
 	objects map[string][]byte
 	putErr  error
+	getErr  error
 }
 
 func (r *recordingObjectStorage) GetObject(_ context.Context, bucket, object string) (io.ReadCloser, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.getErr != nil {
+		return nil, r.getErr
+	}
 	b, ok := r.objects[bucket+"/"+object]
 	if !ok {
 		return nil, fmt.Errorf("%w: Bucket:%q, Object:%q", objectstorage.ErrObjectNotFound, bucket, object)
@@ -1682,6 +1686,18 @@ func TestUploadLocalCheckpointDir(t *testing.T) {
 		if !strings.Contains(err.Error(), "gone and no uploaded copy exists") {
 			t.Errorf("error = %v, want it to name the unrecoverable local snapshot", err)
 		}
+		if got := apierror.Code(err); got != codes.NotFound {
+			t.Errorf("code = %v, want NotFound: the control plane crashes the actor only on NotFound", got)
+		}
+	})
+
+	t.Run("gone locally and the probe fails stays retryable", func(t *testing.T) {
+		s := newPluginHerder(t, &recordingObjectStorage{getErr: errors.New("connection reset")})
+
+		_, err := s.uploadLocalCheckpointDir(ctx, validUploadPausedCheckpointRequest(), filepath.Join(t.TempDir(), "never-created"), uri)
+		if got := apierror.Code(err); got != codes.Unavailable {
+			t.Errorf("code = %v (err %v), want Unavailable: a previous attempt may have committed the upload", got, err)
+		}
 	})
 
 	t.Run("upload failure returns the error", func(t *testing.T) {
@@ -1694,6 +1710,9 @@ func TestUploadLocalCheckpointDir(t *testing.T) {
 		_, err := s.uploadLocalCheckpointDir(ctx, validUploadPausedCheckpointRequest(), dir, uri)
 		if err == nil {
 			t.Fatal("uploadLocalCheckpointDir succeeded, want error")
+		}
+		if got := apierror.Code(err); got == codes.NotFound {
+			t.Errorf("code = %v, want not NotFound: the local snapshot is still there", got)
 		}
 	})
 }

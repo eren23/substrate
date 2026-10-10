@@ -28,6 +28,8 @@ import (
 	"github.com/agent-substrate/substrate/internal/resources"
 	"github.com/agent-substrate/substrate/pkg/proto/ateapipb"
 	"go.opentelemetry.io/otel/attribute"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // SuspendActor executes the workflow to suspend a running or paused actor:
@@ -324,9 +326,51 @@ func (w *ActorWorkflow) ensurePausedSnapshotUploaded(ctx context.Context, actorR
 	wireFidelity = ateattr.SnapshotFidelityValue(req.DesiredFidelity)
 
 	if _, err = client.UploadPausedCheckpoint(ctx, req); err != nil {
+		// NotFound: the local snapshot is gone and no uploaded copy exists, so
+		// PAUSED would point at nothing. Any other failure leaves the local
+		// snapshot on the node, and crashing would discard it (#362).
+		if ateletErrorCrashesActor(ctx, false, err) && status.Code(err) != codes.NotFound {
+			return wireFidelity, w.returnToPaused(ctx, actorRef, actor, err)
+		}
 		return wireFidelity, handleAteletError(ctx, w.store, actorRef, ateattr.OperationSuspend, "UploadPausedCheckpoint", false, err)
 	}
 	return wireFidelity, nil
+}
+
+// returnToPaused undoes MarkSuspending after a failed upload of a paused
+// actor's local snapshot: the actor is PAUSED again, with the same local
+// snapshot, so it can be resumed or suspended again. It deletes what the
+// failed upload wrote, best-effort: on failure the objects stay under the
+// actor's prefix until the actor is deleted.
+func (w *ActorWorkflow) returnToPaused(ctx context.Context, actorRef resources.ActorRef, actor *ateapipb.Actor, uploadErr error) error {
+	_, inProgress := findLatestSnapshotStorage(actor.GetStatus(), ateapipb.SnapshotDurability_SNAPSHOT_DURABILITY_DURABLE, ateapipb.SnapshotStorageStatus_SNAPSHOT_STORAGE_STATUS_IN_PROGRESS)
+	stored, err := w.store.UpdateActor(ctx, actorRef, store.PreconditionFrom(actor), func(toUpdate *ateapipb.Actor) error {
+		snap, _ := findLatestSnapshotStorage(toUpdate.Status, ateapipb.SnapshotDurability_SNAPSHOT_DURABILITY_LOCAL, ateapipb.SnapshotStorageStatus_SNAPSHOT_STORAGE_STATUS_COMPLETED)
+		if snap == nil {
+			return fmt.Errorf("actor %s has no completed local snapshot to return to", actorRef)
+		}
+		if findSnapshotStorage(snap, ateapipb.SnapshotDurability_SNAPSHOT_DURABILITY_DURABLE).GetStatus() == ateapipb.SnapshotStorageStatus_SNAPSHOT_STORAGE_STATUS_IN_PROGRESS {
+			removeSnapshotStorage(snap, ateapipb.SnapshotDurability_SNAPSHOT_DURABILITY_DURABLE)
+		}
+		toUpdate.Status.State = ateapipb.ActorState_ACTOR_STATE_PAUSED
+		return nil
+	})
+	if err != nil {
+		// The actor stays SUSPENDING, and a retried suspend uploads again.
+		if errors.Is(err, store.ErrVersionConflict) {
+			return apierror.Aborted("concurrent update conflict, please retry")
+		}
+		return fmt.Errorf("while returning the actor to PAUSED after atelet UploadPausedCheckpoint failed (%v): %w", uploadErr, err)
+	}
+	logActorStateChanged(ctx, stored, ateattr.OperationSuspend)
+
+	if uri, perr := resources.ParseSnapshotURI(inProgress.GetObject().GetSnapshotUri()); w.snapshotPlugin != nil && perr == nil && uri.OwnedBy(actorSnapshotOwner(actor)) {
+		if cerr := w.cleanupSnapshot(ctx, uri.Prefix()); cerr != nil {
+			slog.WarnContext(ctx, "Failed to delete a failed paused upload; its objects are left in storage until the actor is deleted",
+				slog.Any("actor", actorRef), slog.String("snapshot_uri", uri.String()), slog.String("err", cerr.Error()))
+		}
+	}
+	return apierror.Internal("while calling atelet UploadPausedCheckpoint: %w; the actor is PAUSED again", uploadErr)
 }
 
 // newInProgressSnapshotURI is where the snapshot an actor is currently taking is

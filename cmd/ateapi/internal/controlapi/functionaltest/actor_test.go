@@ -4757,10 +4757,97 @@ func TestSuspendActor_FromPaused(t *testing.T) {
 	}
 }
 
-// TestSuspendActor_FromPaused_UploadFailureCrashes: an atelet error while
-// uploading the paused snapshot crashes the actor like any other atelet
-// error, releasing its worker and making it unsuspendable.
-func TestSuspendActor_FromPaused_UploadFailureCrashes(t *testing.T) {
+// TestSuspendActor_FromPaused_UploadFailureKeepsPaused: a failed upload of
+// the paused snapshot, for example a storage outage, returns the actor to
+// PAUSED with the same local snapshot, and a later suspend uploads it (#362).
+func TestSuspendActor_FromPaused_UploadFailureKeepsPaused(t *testing.T) {
+	ns := namespaceForTest("ns-suspend-paused-retry")
+	tc := setupTest(t, ns)
+	defer tc.cleanup()
+
+	createTemplate(t, tc, ns)
+	createWorkerPod(t, tc, ns, "worker-1", "node1", "pool1")
+
+	name := "id1"
+	ref := &ateapipb.ObjectRef{Atespace: testAtespace, Name: name}
+	if _, err := tc.client.CreateActor(context.Background(), &ateapipb.CreateActorRequest{Actor: &ateapipb.Actor{
+		Metadata:      &ateapipb.ResourceMetadata{Atespace: testAtespace, Name: name},
+		ActorTemplate: &ateapipb.ObjectRef{Atespace: testAtespace, Name: "tmpl1"},
+	}}); err != nil {
+		t.Fatalf("CreateActor failed: %v", err)
+	}
+	if _, err := tc.client.ResumeActor(context.Background(), &ateapipb.ResumeActorRequest{Actor: ref}); err != nil {
+		t.Fatalf("ResumeActor failed: %v", err)
+	}
+	paused, err := tc.client.PauseActor(context.Background(), &ateapipb.PauseActorRequest{Actor: ref})
+	if err != nil {
+		t.Fatalf("PauseActor failed: %v", err)
+	}
+	_, pausedLocal := localSnapshot(paused.GetActor().GetStatus())
+
+	tc.fakeAtelet.Reset()
+	tc.fakeAtelet.SetObjectStore(tc.objectStore)
+	tc.fakeAtelet.FailUpload = status.Error(codes.Internal, "injected storage outage")
+	tc.fakeAtelet.PartialUpload = true
+	_, err = tc.client.SuspendActor(context.Background(), &ateapipb.SuspendActorRequest{Actor: ref})
+	if got := status.Code(err); got != codes.Internal {
+		t.Fatalf("SuspendActor = %v, want code %v", err, codes.Internal)
+	}
+
+	got, err := tc.client.GetActor(context.Background(), &ateapipb.GetActorRequest{Actor: ref})
+	if err != nil {
+		t.Fatalf("GetActor failed: %v", err)
+	}
+	if got.GetStatus().GetState() != ateapipb.ActorState_ACTOR_STATE_PAUSED {
+		t.Fatalf("state after failed upload = %v, want PAUSED", got.GetStatus().GetState())
+	}
+	if _, ls := localSnapshot(got.GetStatus()); ls.GetSnapshotName() != pausedLocal.GetSnapshotName() {
+		t.Errorf("local snapshot = %v, want the paused one %v", ls, pausedLocal)
+	}
+	if got.GetStatus().GetCrash() != nil {
+		t.Errorf("crash = %v, want none", got.GetStatus().GetCrash())
+	}
+	tc.fakeAtelet.Lock.Lock()
+	partial := tc.fakeAtelet.UploadRequest.GetDestinationSnapshotUri()
+	tc.fakeAtelet.Lock.Unlock()
+	partialURI, err := resources.ParseSnapshotURI(partial)
+	if err != nil {
+		t.Fatalf("ParseSnapshotURI(%q): %v", partial, err)
+	}
+	if left := tc.objectStore.Snapshot(t, partialURI); len(left) != 0 {
+		t.Errorf("objects of the failed upload left in storage: %v", left)
+	}
+	for _, snap := range got.GetStatus().GetSnapshots() {
+		for _, st := range snap.GetStorage() {
+			if st.GetStatus() == ateapipb.SnapshotStorageStatus_SNAPSHOT_STORAGE_STATUS_IN_PROGRESS {
+				t.Errorf("in-progress snapshot %v kept after the failed upload", st)
+			}
+		}
+	}
+
+	tc.fakeAtelet.Lock.Lock()
+	tc.fakeAtelet.FailUpload = nil
+	tc.fakeAtelet.Lock.Unlock()
+	suspended, err := tc.client.SuspendActor(context.Background(), &ateapipb.SuspendActorRequest{Actor: ref})
+	if err != nil {
+		t.Fatalf("SuspendActor after the outage failed: %v", err)
+	}
+	if got := suspended.GetActor().GetStatus().GetState(); got != ateapipb.ActorState_ACTOR_STATE_SUSPENDED {
+		t.Errorf("state = %v, want SUSPENDED", got)
+	}
+	tc.fakeAtelet.Lock.Lock()
+	uploaded := tc.fakeAtelet.UploadRequest.GetLocalSnapshotName()
+	tc.fakeAtelet.Lock.Unlock()
+	if uploaded != pausedLocal.GetSnapshotName() {
+		t.Errorf("uploaded local snapshot = %q, want %q", uploaded, pausedLocal.GetSnapshotName())
+	}
+}
+
+// TestSuspendActor_FromPaused_LocalSnapshotGoneCrashes: when atelet reports
+// that the paused snapshot is gone and was never uploaded, nothing is left to
+// return to, so the actor crashes, releasing its worker and making it
+// unsuspendable.
+func TestSuspendActor_FromPaused_LocalSnapshotGoneCrashes(t *testing.T) {
 	ns := namespaceForTest("ns-suspend-paused-crash")
 	tc := setupTest(t, ns)
 	defer tc.cleanup()
@@ -4788,7 +4875,7 @@ func TestSuspendActor_FromPaused_UploadFailureCrashes(t *testing.T) {
 	}
 
 	tc.fakeAtelet.Reset()
-	tc.fakeAtelet.FailUpload = status.Error(codes.Internal, "injected upload failure")
+	tc.fakeAtelet.FailUpload = status.Error(codes.NotFound, "injected missing local snapshot")
 	_, err = tc.client.SuspendActor(context.Background(), &ateapipb.SuspendActorRequest{
 		Actor: &ateapipb.ObjectRef{Atespace: testAtespace, Name: name},
 	})
@@ -4812,7 +4899,7 @@ func TestSuspendActor_FromPaused_UploadFailureCrashes(t *testing.T) {
 	if crashed.GetStatus().GetWorkerAssignment() != nil {
 		t.Errorf("expected worker assignment to be cleared, got %v", crashed.GetStatus().GetWorkerAssignment())
 	}
-	assertActorCrashStatus(t, tc, name, "suspend failed: atelet UploadPausedCheckpoint: injected upload failure")
+	assertActorCrashStatus(t, tc, name, "suspend failed: atelet UploadPausedCheckpoint: injected missing local snapshot")
 
 	worker, err := tc.persistence.GetWorker(context.Background(), podUID)
 	if err != nil {

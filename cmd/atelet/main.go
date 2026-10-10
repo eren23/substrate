@@ -985,10 +985,14 @@ func (s *AteomHerder) uploadLocalCheckpointDir(ctx context.Context, req *ateletp
 			return "", nil
 		}
 		if status.Code(fetchErr) == codes.NotFound {
-			return "", fmt.Errorf("local snapshot %q is gone and no uploaded copy exists: %w",
+			// NotFound tells the control plane that the paused actor has
+			// nothing left to return to; other upload failures keep it PAUSED.
+			return "", apierror.NotFound("local snapshot %q is gone and no uploaded copy exists: %w",
 				req.GetLocalSnapshotName(), fetchErr)
 		}
-		return "", fmt.Errorf("while probing for an already-uploaded snapshot manifest: %w", fetchErr)
+		// A previous attempt may have committed the upload: only a retry that
+		// reaches storage can tell, so the control plane must not give up on it.
+		return "", apierror.Unavailable("while probing for an already-uploaded snapshot manifest: %w", fetchErr)
 	}
 	if err != nil {
 		return "", wrapFileSystemErr("while reading local snapshot manifest", err)

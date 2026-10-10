@@ -131,6 +131,8 @@ type FakeAteletServer struct {
 	UploadCalled  bool
 	UploadRequest *ateletpb.UploadPausedCheckpointRequest
 	FailUpload    error
+	// PartialUpload makes a failing upload write its objects first.
+	PartialUpload bool
 
 	TerminateCalled  bool
 	TerminateRequest *ateletpb.TerminateRequest
@@ -183,6 +185,7 @@ func (f *FakeAteletServer) Reset() {
 	f.UploadCalled = false
 	f.UploadRequest = nil
 	f.FailUpload = nil
+	f.PartialUpload = false
 
 	f.TerminateCalled = false
 	f.TerminateRequest = nil
@@ -198,6 +201,11 @@ func (f *FakeAteletServer) UploadPausedCheckpoint(ctx context.Context, req *atel
 	f.UploadCalled = true
 	f.UploadRequest = proto.Clone(req).(*ateletpb.UploadPausedCheckpointRequest)
 	if f.FailUpload != nil {
+		if f.PartialUpload {
+			if err := f.writeSnapshot(req.GetDestinationSnapshotUri()); err != nil {
+				return nil, err
+			}
+		}
 		return nil, f.FailUpload
 	}
 	if err := f.writeSnapshot(req.GetDestinationSnapshotUri()); err != nil {
