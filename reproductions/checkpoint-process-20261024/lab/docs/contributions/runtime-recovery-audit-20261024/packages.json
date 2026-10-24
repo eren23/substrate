@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "substrate_revision": "1756c0f7cb344035889da699981eeff4c8aef755",
+  "upstream_files": {
+    "cmd/atelet/main.go": "06097a09b114b566a1ac1ddd158b0faa3c8a547627a67cc9a39329314f0cfd99",
+    "cmd/atelet/lifecycle_test.go": "fb8e192c4523f781ce3827f70416444e742b16d2412c9509d9003fface39453a",
+    "internal/ateworker/checkpoint.go": "bee644f26513ae0bccd7f0bdb1a5a1b646b92096d8cd886f397e6a111f2e3e5d",
+    "cmd/ateworker-gvisor/main.go": "f10d3d07b4ba0fc1f211724bc85927742704d08f8458d6ae6b97cfe8738f12b9"
+  },
+  "runtime": {
+    "url": "https://storage.googleapis.com/gvisor/releases/release/20261012.0/x86_64/gvisor.tar.zstd",
+    "sha512": "ce2e1aeb853c104e854dea6644333a1dba0fbc9dd1646af97e1d013fdf810da6d4176dd96f2139d7b055e5382117c0d7c4567ebd64ed9bef47fdd15f80fd67ab"
+  },
+  "go_version": "1.27.3"
+}

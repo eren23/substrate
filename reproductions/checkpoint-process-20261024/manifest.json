@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "substrate_revision": "1756c0f7cb344035889da699981eeff4c8aef755",
+  "tested_lab_commit": "a2118b99bcffa708eeb618c9473349077cfed3f8",
+  "exact_source_copies": [
+    {
+      "source": "tools/runtime-lab/checkpoint-process/atelet_process_test.go",
+      "packet": "lab/tools/runtime-lab/checkpoint-process/atelet_process_test.go",
+      "sha256": "5b7dd0ee749d7f943e9fdeaf339e348a866506c8d19d1629cb4d6baabeb90a0f"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-process/cleanup.py",
+      "packet": "lab/tools/runtime-lab/checkpoint-process/cleanup.py",
+      "sha256": "970735eb9ecdc1cdb222bb9bfe5f581bc31b3089ade60d91ca6427a6bf981eb0"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-process/evidence.py",
+      "packet": "lab/tools/runtime-lab/checkpoint-process/evidence.py",
+      "sha256": "411bee1ea78169d1e2ec9ed2f496fecfb0d25c7bea37587a4673745d5fcee756"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-process/matrix.py",
+      "packet": "lab/tools/runtime-lab/checkpoint-process/matrix.py",
+      "sha256": "f37546262397fcb685b379f8157307c1a4c7dfe38a5c031a5b195ae72b79283b"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-process/prepare.py",
+      "packet": "lab/tools/runtime-lab/checkpoint-process/prepare.py",
+      "sha256": "35c0908f9fac885684dc307cf469c807b765a39dbbea726a3e3019657d03f4cb"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-process/process.py",
+      "packet": "lab/tools/runtime-lab/checkpoint-process/process.py",
+      "sha256": "c8b943100311ba715760b418a995816e2295f6eb771f46194f7c96230d44f091"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-process/process_common_test.go",
+      "packet": "lab/tools/runtime-lab/checkpoint-process/process_common_test.go",
+      "sha256": "47728d6b395bf844e4a4900464b118d26a53b173e220dd4f21be513566c64be3"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-process/run.py",
+      "packet": "lab/tools/runtime-lab/checkpoint-process/run.py",
+      "sha256": "a95ffe9cdfec488f8c68168f23b7b5c67e79293c0d0d060c56d39cf5b61e8289"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-process/runsc_observer.py",
+      "packet": "lab/tools/runtime-lab/checkpoint-process/runsc_observer.py",
+      "sha256": "1019b7358f44604f56c32dd538597d302909e33f24709a862ebb6ad1dd91fb13"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-process/trial.py",
+      "packet": "lab/tools/runtime-lab/checkpoint-process/trial.py",
+      "sha256": "cb4bdbdec6bca11e6e59ef6f6c3075b8f990e459e299b8de326f135303f656aa"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-process/worker_process_test.go",
+      "packet": "lab/tools/runtime-lab/checkpoint-process/worker_process_test.go",
+      "sha256": "cdbab27ffe68e0a229da472238b506f40bb8badac9624f9626c7deddf7d1d528"
+    },
+    {
+      "source": "bin/runtime_lab/resources.py",
+      "packet": "lab/bin/runtime_lab/resources.py",
+      "sha256": "2b494509cb0105592ebe5ec01db79625f03377ab94174fab024e45ba1d12d3ba"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-test-env.py",
+      "packet": "lab/tools/runtime-lab/checkpoint-test-env.py",
+      "sha256": "119173c23546625e498eeebff5fa92440cc662f43154f3d816ad97140d973213"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-interruption/guest.go",
+      "packet": "lab/tools/runtime-lab/checkpoint-interruption/guest.go",
+      "sha256": "24f0f93f2def9abcd1a19e14d20f55731206865aca8a615aaaa775146a7c9320"
+    }
+  ],
+  "unchanged_function_excerpts": [
+    {
+      "source": "tools/runtime-lab/hosted-e2e.py",
+      "function": "save",
+      "source_lines": [
+        35,
+        37
+      ],
+      "sha256": "56043fe9a7b6cfa547d19955522be455847f6e61fc6dbaf0b7e727d96a901b22"
+    },
+    {
+      "source": "tools/runtime-lab/hosted-e2e.py",
+      "function": "capture",
+      "source_lines": [
+        68,
+        74
+      ],
+      "sha256": "8b242b7bc0559d2a3724560cdda776d9bda09e6c43887162300f9493505aa02f"
+    },
+    {
+      "source": "tools/runtime-lab/hosted-e2e.py",
+      "function": "require_hosted",
+      "source_lines": [
+        110,
+        123
+      ],
+      "sha256": "529135ce0497f41e11f419d8233f80a7c65849fec7094dbfa416f41669b10115"
+    },
+    {
+      "source": "tools/runtime-lab/hosted-e2e.py",
+      "function": "output_path",
+      "source_lines": [
+        126,
+        131
+      ],
+      "sha256": "ba44d50fe197a94a7245db1034bb5b203076c97a6c4f27beb162743d8a7e0f72"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-audit.py",
+      "function": "worker_command",
+      "source_lines": [
+        28,
+        31
+      ],
+      "sha256": "f1263271973e695b793ff9b20b9935ccbab8f18ee4c135789e8d792289b7d7c4"
+    },
+    {
+      "source": "tools/runtime-lab/checkpoint-audit.py",
+      "function": "unit_summary",
+      "source_lines": [
+        34,
+        58
+      ],
+      "sha256": "840dcb2d42bf9ef911114cd421a8f08b613ab0ed0cb0511e4d220421629b33f7"
+    }
+  ],
+  "packaging": "The 14 declared source copies are byte-identical to the tested commit. Two minimal import modules retain unchanged consumed function bodies. Source-hash metadata omits the original unused fixture_files list. Full raw evidence is retained privately; only the observed results and a short error excerpt are public.",
+  "runtime": {
+    "url": "https://storage.googleapis.com/gvisor/releases/release/20261012.0/x86_64/gvisor.tar.zstd",
+    "sha512": "ce2e1aeb853c104e854dea6644333a1dba0fbc9dd1646af97e1d013fdf810da6d4176dd96f2139d7b055e5382117c0d7c4567ebd64ed9bef47fdd15f80fd67ab"
+  },
+  "runsc_sha256": "56996c546dbafd5716e1d09e307a131d97eb3b6483c22a1178631751f3e0392f",
+  "go_version": "1.27.3",
+  "scope": [
+    "same-host-boot atelet test-process SIGKILL with persistent real gVisor worker",
+    "initial guest launched directly via runsc; simulated storage/reporting services",
+    "MEMORY fidelity, systrap, network none, cgroups ignored",
+    "observation below default five-minute upload delay; no delayed upload/detach, full cluster/API lifecycle, reboot or power-loss claim"
+  ],
+  "ai_use": "Codex assisted with investigation, fixtures, packaging, checks, independent review and draft."
+}
