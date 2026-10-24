@@ -1,0 +1,451 @@
+{
+  "substrate_revision": "1756c0f7cb344035889da699981eeff4c8aef755",
+  "go_version": "1.27.3",
+  "baseline": {
+    "outcome": "pass",
+    "missing_controls": [],
+    "failures": [],
+    "skips": [],
+    "packages_passed": [
+      "go.ate.dev/substrate/cmd/atelet",
+      "go.ate.dev/substrate/cmd/atelet/internal/snapshottracker",
+      "go.ate.dev/substrate/cmd/ateworker-gvisor",
+      "go.ate.dev/substrate/cmd/ateworker-microvm",
+      "go.ate.dev/substrate/internal/ateworker"
+    ]
+  },
+  "test_environment": {
+    "uid": 65534,
+    "gid": 65534,
+    "groups": [],
+    "umask": "022",
+    "created_directory_mode": "0o755"
+  },
+  "worker_test_environment": {
+    "uid": 0,
+    "umask": "022"
+  },
+  "boundaries": {
+    "outcome": "findings",
+    "completed": 15,
+    "findings": [
+      "TestCheckpointBoundaryAudit/first-stage/1",
+      "TestCheckpointBoundaryAudit/first-stage/2",
+      "TestCheckpointBoundaryAudit/first-stage/3",
+      "TestCheckpointBoundaryAudit/local-publication/1",
+      "TestCheckpointBoundaryAudit/local-publication/2",
+      "TestCheckpointBoundaryAudit/local-publication/3"
+    ],
+    "cases": {
+      "TestCheckpointBoundaryAudit/first-stage/1": {
+        "details": {
+          "after_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "checkpoint-state/.staged/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "checkpoint-state/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "checkpoint-state/.staged/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "checkpoint-state/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": false,
+          "fault_reached": true,
+          "generation": 1,
+          "payload_readable": false,
+          "retry_error": "while calling worker CheckpointWorkload: rpc error: code = FailedPrecondition desc = fixture workload stopped and completed capture cannot be replayed",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 2
+        },
+        "outcome": "finding",
+        "test": "TestCheckpointBoundaryAudit/first-stage/1"
+      },
+      "TestCheckpointBoundaryAudit/first-stage/2": {
+        "details": {
+          "after_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "checkpoint-state/.staged/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "checkpoint-state/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "checkpoint-state/.staged/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "checkpoint-state/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": false,
+          "fault_reached": true,
+          "generation": 1,
+          "payload_readable": false,
+          "retry_error": "while calling worker CheckpointWorkload: rpc error: code = FailedPrecondition desc = fixture workload stopped and completed capture cannot be replayed",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 2
+        },
+        "outcome": "finding",
+        "test": "TestCheckpointBoundaryAudit/first-stage/2"
+      },
+      "TestCheckpointBoundaryAudit/first-stage/3": {
+        "details": {
+          "after_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "checkpoint-state/.staged/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "checkpoint-state/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "checkpoint-state/.staged/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "checkpoint-state/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": false,
+          "fault_reached": true,
+          "generation": 1,
+          "payload_readable": false,
+          "retry_error": "while calling worker CheckpointWorkload: rpc error: code = FailedPrecondition desc = fixture workload stopped and completed capture cannot be replayed",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 2
+        },
+        "outcome": "finding",
+        "test": "TestCheckpointBoundaryAudit/first-stage/3"
+      },
+      "TestCheckpointBoundaryAudit/local-publication/1": {
+        "details": {
+          "after_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": false,
+          "fault_reached": true,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "while calling worker CheckpointWorkload: rpc error: code = FailedPrecondition desc = fixture workload stopped and completed capture cannot be replayed",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 2
+        },
+        "outcome": "finding",
+        "test": "TestCheckpointBoundaryAudit/local-publication/1"
+      },
+      "TestCheckpointBoundaryAudit/local-publication/2": {
+        "details": {
+          "after_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": false,
+          "fault_reached": true,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "while calling worker CheckpointWorkload: rpc error: code = FailedPrecondition desc = fixture workload stopped and completed capture cannot be replayed",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 2
+        },
+        "outcome": "finding",
+        "test": "TestCheckpointBoundaryAudit/local-publication/2"
+      },
+      "TestCheckpointBoundaryAudit/local-publication/3": {
+        "details": {
+          "after_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": false,
+          "fault_reached": true,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "while calling worker CheckpointWorkload: rpc error: code = FailedPrecondition desc = fixture workload stopped and completed capture cannot be replayed",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 2
+        },
+        "outcome": "finding",
+        "test": "TestCheckpointBoundaryAudit/local-publication/3"
+      },
+      "TestCheckpointBoundaryAudit/durable-publication/1": {
+        "details": {
+          "after_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "checkpoint-state/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "checkpoint-state/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": true,
+          "fault_reached": true,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 2
+        },
+        "outcome": "pass",
+        "test": "TestCheckpointBoundaryAudit/durable-publication/1"
+      },
+      "TestCheckpointBoundaryAudit/durable-publication/2": {
+        "details": {
+          "after_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "checkpoint-state/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "checkpoint-state/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": true,
+          "fault_reached": true,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 2
+        },
+        "outcome": "pass",
+        "test": "TestCheckpointBoundaryAudit/durable-publication/2"
+      },
+      "TestCheckpointBoundaryAudit/durable-publication/3": {
+        "details": {
+          "after_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "checkpoint-state/.checkpoint-done.json": "4bc95ae328fda8ad67539c495883a657b19d3c700eae050e8de0fa6554f8934b",
+            "checkpoint-state/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "checkpoint-state/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": true,
+          "fault_reached": true,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 2
+        },
+        "outcome": "pass",
+        "test": "TestCheckpointBoundaryAudit/durable-publication/3"
+      },
+      "TestCheckpointBoundaryAudit/deferred-control/1": {
+        "details": {
+          "after_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": true,
+          "fault_reached": false,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 1
+        },
+        "outcome": "pass",
+        "test": "TestCheckpointBoundaryAudit/deferred-control/1"
+      },
+      "TestCheckpointBoundaryAudit/deferred-control/2": {
+        "details": {
+          "after_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": true,
+          "fault_reached": false,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 1
+        },
+        "outcome": "pass",
+        "test": "TestCheckpointBoundaryAudit/deferred-control/2"
+      },
+      "TestCheckpointBoundaryAudit/deferred-control/3": {
+        "details": {
+          "after_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": true,
+          "fault_reached": false,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 1
+        },
+        "outcome": "pass",
+        "test": "TestCheckpointBoundaryAudit/deferred-control/3"
+      },
+      "TestCheckpointBoundaryAudit/immediate-control/1": {
+        "details": {
+          "after_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": true,
+          "fault_reached": false,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 1
+        },
+        "outcome": "pass",
+        "test": "TestCheckpointBoundaryAudit/immediate-control/1"
+      },
+      "TestCheckpointBoundaryAudit/immediate-control/2": {
+        "details": {
+          "after_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": true,
+          "fault_reached": false,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 1
+        },
+        "outcome": "pass",
+        "test": "TestCheckpointBoundaryAudit/immediate-control/2"
+      },
+      "TestCheckpointBoundaryAudit/immediate-control/3": {
+        "details": {
+          "after_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "before_sha256": {
+            "local-checkpoint/audit-snapshot/checkpoint.img": "89c67365335b6421e3c10304820be7aab9abd06b1c60f28b18e6c03a4f1ef0ef",
+            "local-checkpoint/audit-snapshot/manifest.json": "de92a777481375ffd58116d71484dcbf6ed581d9f19efad5e1177f100b9a91a5",
+            "local-checkpoint/audit-snapshot/pages.img": "70f314e93462c0903e8bd0f522d3b751e7fa30f3a7333be86968202374b9dcf5"
+          },
+          "captures": 1,
+          "committed": true,
+          "fault_reached": false,
+          "generation": 1,
+          "payload_readable": true,
+          "retry_error": "",
+          "scope": "synthetic worker images; production atelet and checkpoint record validator; same-boot tracker reconstruction",
+          "snapshot_uuid": "audit-snapshot",
+          "worker_calls": 1
+        },
+        "outcome": "pass",
+        "test": "TestCheckpointBoundaryAudit/immediate-control/3"
+      }
+    }
+  },
+  "real_gvisor_completed_replay": {
+    "passed": 3,
+    "capture_dispatches_per_trial": [
+      1,
+      1,
+      1
+    ],
+    "files_unchanged": [
+      true,
+      true,
+      true
+    ],
+    "guest_counter_after_restore": [
+      3,
+      3,
+      3
+    ],
+    "memory_witness_bytes": 67108864
+  },
+  "limits": [
+    "Injected errors; same-process tracker reconstruction, not a killed atelet or a reboot.",
+    "Synthetic worker uses production completion marker helpers and rejects unreplayable captures. It does not run the real worker fallback.",
+    "No file loss observed on the failing fixture retries.",
+    "Real gVisor tests separately cover completed MEMORY replay/restore, not these interruptions.",
+    "Tracker.Start, background workers and the control-plane workflow are not executed.",
+    "Unchanged file hashes only establish preservation in the synthetic rejection path; the real fallback is not executed.",
+    "committed derives from the returned response; file hash equality is checked in the external audit, not the Go invariant."
+  ]
+}
